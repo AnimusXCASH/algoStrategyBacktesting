@@ -42,15 +42,16 @@ class DCAStrategyCompound2(bt.Strategy):
             self.execute_sell(current_high)
 
     def execute_buy(self, current_price):
+        current_cash = self.broker.get_cash()
         if self.last_trade_value == 0:  # If it's the first trade or after a reset
-            current_cash = self.broker.get_cash()
+
             amount_to_invest = current_cash * (self.params.initial_trade_size_percentage / 100)
         else:
             amount_to_invest = self.last_trade_value * self.params.trade_size_multiplier
 
         units_to_buy = amount_to_invest / current_price
 
-        if units_to_buy > 0:
+        if units_to_buy > 0 and amount_to_invest <= current_cash:
             self.buy(size=units_to_buy)
 
             self.total_invested += amount_to_invest
