@@ -10,13 +10,13 @@ DCA Script
 import backtrader as bt
 
 
-class DCAStrategyCompound2(bt.Strategy):
+class DCAV1(bt.Strategy):
     params = (
         ('price_drop_percentage', 1),
         ('initial_trade_size_percentage', 7),  # Initial trade size as a percentage of cash
         ('trade_size_multiplier', 3),  # Multiplier for subsequent trades
         ('take_profit_percentage', 8),
-        ('log', False),
+        ('log', True),
     )
 
     def __init__(self):
@@ -42,16 +42,17 @@ class DCAStrategyCompound2(bt.Strategy):
             self.execute_sell(current_high)
 
     def execute_buy(self, current_price):
-        current_cash = self.broker.get_cash()
-        if self.last_trade_value == 0:  
+        if self.last_trade_value == 0:  # If it's the first trade or after a reset
+            current_cash = self.broker.get_cash()
             amount_to_invest = current_cash * (self.params.initial_trade_size_percentage / 100)
         else:
             amount_to_invest = self.last_trade_value * self.params.trade_size_multiplier
 
         units_to_buy = amount_to_invest / current_price
 
-        if units_to_buy > 0 and amount_to_invest <= current_cash:
+        if units_to_buy > 0:
             self.buy(size=units_to_buy)
+
             self.total_invested += amount_to_invest
             self.total_units_purchased += units_to_buy
             self.average_entry_price = self.total_invested / self.total_units_purchased
@@ -80,8 +81,3 @@ class DCAStrategyCompound2(bt.Strategy):
         if self.params.log:
             dt = dt or self.datas[0].datetime.date(0)
             print(f'{dt.isoformat()}, {txt}')
-
-
-    def stop(self):
-        # This method is called once at the end of the strategy's lifecycle
-        print('Test has been finished')
