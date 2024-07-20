@@ -162,22 +162,16 @@ def plot_indicators(df, pai_overbought=(80, 100), pai_oversold=(-80, -100), pai_
     fig.show()
 
 
-def backtest_with_signals(df, cond1_active=True, cond2_active=True, cond3_active=True, cond4_active=True, take_profit_multiplier=1.05, initial_allocation_pct=0.02, dca_multiplier=1.5):
-    # Ensure the DataFrame is copied to avoid altering the original data
+def backtest_with_signals(df, cond1_active=True, cond2_active=True, cond3_active=True, cond4_active=True,cond5_active=True, take_profit_multiplier=1.05, initial_allocation_pct=0.02, dca_multiplier=1.5):
     df = df.reset_index(drop=True).copy()
 
     df['buy'] = False
     df['sell'] = False
-    df['cash'] = 0.0  
-    df['position'] = 0.0  
-    df['portfolio_value'] = 0.0 
-    df['avg_entry_price'] = 0.0 
-    df['take_profit_price'] = 0.0  
 
-    initial_cash = 10000.0  
+    initial_cash = 10000.0
     cash = initial_cash
     position = 0.0
-    total_contract_value = 0.0 
+    total_contract_value = 0.0
     cooldown_period = 10
     last_buy_signal = -cooldown_period
 
@@ -185,78 +179,62 @@ def backtest_with_signals(df, cond1_active=True, cond2_active=True, cond3_active
     pai_oversold = (-80, -60)
     pai_straddle = (5, -5)
 
-    total_purchases = 0
     first_purchase = True
-    current_dca_amount = float()
+    current_dca_amount = 0.0
 
-    # Iterate over the dataframe rows
     for i in range(1, len(df)):
-        # Skip if any of the required columns have NaN values
         if pd.isna(df['PAI'].iloc[i]) or pd.isna(df['RSI'].iloc[i]) or pd.isna(df['RSI_EMA'].iloc[i]):
             continue
 
-        # longCondition = ta.crossover(rsi, rsiExtendedLowerBand) and Z < -80.0  -> Plippy idea from trading view
-        condition_1 = cond1_active and (df['RSI'].iloc[i-1] < inevi_oversold[1]) & (df['RSI'].iloc[i] >= inevi_oversold[1]) & (df['PAI'].iloc[i] < pai_oversold[0])
-        condition_2 = cond2_active and (df['PAI'].iloc[i] <= pai_oversold[0]) & (df['PAI'].iloc[i-1] > pai_oversold[0]) & (df['RSI'].iloc[i] < df['RSI_EMA'].iloc[i])
-        condition_3 = cond3_active and (df['RSI'].iloc[i] < 40) & (df['PAI'].iloc[i] < 0) & (df['RSI'].iloc[i-1] < df['RSI_EMA'].iloc[i-1]) & (df['RSI'].iloc[i] >= df['RSI_EMA'].iloc[i])
-        condition_4 = cond4_active and (df['RSI'].iloc[i] > df['RSI_EMA'].iloc[i]) & (df['RSI'].iloc[i] > 50) & (df['RSI'].iloc[i] < 70) & (df['RSI_EMA'].iloc[i] > 50) & (df['PAI'].iloc[i-1] <= pai_straddle[0]) & (df['PAI'].iloc[i] > pai_straddle[0])
-
-
-        if (condition_1 | condition_2 | condition_3 | condition_4 ) and (i - last_buy_signal >= cooldown_period):
+        condition_1 = cond1_active and ((df['RSI'].iloc[i-1] < inevi_oversold[1]) & (df['RSI'].iloc[i] >= inevi_oversold[1]) & (df['PAI'].iloc[i] < pai_oversold[0]))
+        condition_2 = cond2_active and ((df['PAI'].iloc[i] <= pai_oversold[0]) & (df['PAI'].iloc[i-1] > pai_oversold[0]) & (df['RSI'].iloc[i] < df['RSI_EMA'].iloc[i]))
+        condition_3 = cond3_active and ((df['RSI'].iloc[i] < 40) & (df['PAI'].iloc[i] < 0) & (df['RSI'].iloc[i-1] < df['RSI_EMA'].iloc[i-1]) & (df['RSI'].iloc[i] >= df['RSI_EMA'].iloc[i]))
+        condition_4 = cond4_active and ((df['RSI'].iloc[i] > df['RSI_EMA'].iloc[i]) & (df['RSI'].iloc[i] > 50) & (df['RSI'].iloc[i] < 70) & (df['RSI_EMA'].iloc[i] > 50) & (df['PAI'].iloc[i-1] <= pai_straddle[0]) & (df['PAI'].iloc[i] > pai_straddle[0]))
+        
+        if (condition_1 | condition_2 | condition_3 | condition_4) and (i - last_buy_signal >= cooldown_period):
             df.at[i, 'buy'] = True
             last_buy_signal = i
 
-
-            #TODO something is not right with dynamic increase
-            # Determine the DCA amount for the current purchase
             if first_purchase:
                 current_dca_amount = initial_cash * initial_allocation_pct
                 first_purchase = False
             else:
-                current_dca_amount *= dca_multiplier  # Increase the DCA amount by the multiplier for subsequent buys
+                current_dca_amount *= dca_multiplier
 
             if cash >= current_dca_amount:
                 units_to_buy = current_dca_amount / df['Close'].iloc[i]
                 position += units_to_buy
                 total_contract_value += units_to_buy * df['Close'].iloc[i]
                 cash -= current_dca_amount
-                total_purchases += 1
                 avg_entry_price = total_contract_value / position
-                df.at[i, 'avg_entry_price'] = float(avg_entry_price)
-                print(f"Buy executed on {df.index[i]}: ${current_dca_amount} worth, {units_to_buy} units at price {df['Close'].iloc[i]}")
+                print(f"Buy executed on index {i}: ${current_dca_amount} worth, {units_to_buy} units at price {df['Close'].iloc[i]}")
 
-        # Calculate the take profit price
         take_profit_price = avg_entry_price * take_profit_multiplier if position > 0 else 0
-        df.at[i, 'take_profit_price'] = float(take_profit_price)
+        df.at[i, 'take_profit_price'] = take_profit_price
 
-        # Define sell condition
-        condition_sell = df['Close'].iloc[i] >= take_profit_price if position > 0 else False
+        condition_sell = (df['High'].iloc[i] >= take_profit_price) if position > 0 else False
 
-        # Check if sell condition is met
         if condition_sell:
             df.at[i, 'sell'] = True
-            cash += position * df['Close'].iloc[i]
-            print(f"Sell executed on {df.index[i]}: Sold {position} units at price {df['Close'].iloc[i]}")
+            cash += position * take_profit_price
+            print(f"Sell executed on index {i}: Sold {position} units at price {take_profit_price}")
             position = 0.0
-            total_contract_value = 0.0  # Reset total contract value
-            total_purchases = 0  # Reset total purchases
-            avg_entry_price = 0.0  # Reset average entry price
-            first_purchase = True  # Reset the first purchase flag
-            current_dca_amount = float()
+            total_contract_value = 0.0
+            avg_entry_price = 0.0
+            first_purchase = True
+            current_dca_amount = 0.0
 
-        # Update the portfolio value and average entry price
-        df.at[i, 'cash'] = float(cash)
-        df.at[i, 'position'] = float(position)
-        df.at[i, 'portfolio_value'] = float(cash + position * df['Close'].iloc[i])
+        df.at[i, 'cash'] = cash
+        df.at[i, 'position'] = position
+        df.at[i, 'portfolio_value'] = cash + position * df['Close'].iloc[i]
         if position > 0:
-            df.at[i, 'avg_entry_price'] = float(total_contract_value / position)
+            df.at[i, 'avg_entry_price'] = total_contract_value / position
         else:
             df.at[i, 'avg_entry_price'] = 0.0
-        print(f"Portfolio at {df.index[i]}: Cash: {cash}, Position: {position}, Portfolio Value: {df.at[i, 'portfolio_value']}, Avg Entry Price: {df.at[i, 'avg_entry_price']}")
+        print(f"Portfolio at index {i}: Cash: {cash}, Position: {position}, Portfolio Value: {df.at[i, 'portfolio_value']}, Avg Entry Price: {df.at[i, 'avg_entry_price']}")
 
-    # Calculate final portfolio value
     final_portfolio_value = df['portfolio_value'].iloc[-1]
-    total_invested = sum(df['buy']) * initial_cash * initial_allocation_pct  
+    total_invested = initial_cash * initial_allocation_pct * df['buy'].sum()
     total_return = (final_portfolio_value - initial_cash) / initial_cash * 100
 
     print(f"Final Portfolio Value: {final_portfolio_value}")
@@ -266,7 +244,7 @@ def backtest_with_signals(df, cond1_active=True, cond2_active=True, cond3_active
 if __name__ == "__main__":
     symbol = "BTC/USDT"
     timeframe = "4h"
-    start_date = "2024-01-01T00:00:00Z"
+    start_date = "2022-01-01T00:00:00Z"
     end_date = None
     emas = [20, 50, 200]
     df = fetch_and_prepare_data(exchange, symbol, timeframe, start_date=start_date, end_date=end_date)
@@ -274,5 +252,5 @@ if __name__ == "__main__":
     df = add_multiple_emas(df, column="Close", lengths=emas)
     df = calculate_price_action_index_data(df=df)
 
-    df = backtest_with_signals(df)
+    df = backtest_with_signals(df, initial_allocation_pct=0.02, dca_multiplier=1.5 )
     plot_indicators(df, emas=emas)
