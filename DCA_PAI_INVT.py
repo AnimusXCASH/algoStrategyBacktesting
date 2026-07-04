@@ -162,7 +162,7 @@ def plot_indicators(df, pai_overbought=(80, 100), pai_oversold=(-80, -100), pai_
     fig.show()
 
 
-def backtest_with_signals(df, cond1_active=True, cond2_active=True, cond3_active=True, cond4_active=True,cond5_active=True, take_profit_multiplier=1.05, initial_allocation_pct=0.02, dca_multiplier=1.5):
+def backtest_with_signals(df, cond1_active=False, cond2_active=False, cond3_active=True, cond4_active=False,cond5_active=False, take_profit_multiplier=1.05, initial_allocation_pct=0.02, dca_multiplier=1.5):
     df = df.reset_index(drop=True).copy()
 
     df['buy'] = False
@@ -243,8 +243,8 @@ def backtest_with_signals(df, cond1_active=True, cond2_active=True, cond3_active
 
 if __name__ == "__main__":
     symbol = "BTC/USDT"
-    timeframe = "4h"
-    start_date = "2022-01-01T00:00:00Z"
+    timeframe = "1h"
+    start_date = "2023-01-01T00:00:00Z"
     end_date = None
     emas = [20, 50, 200]
     df = fetch_and_prepare_data(exchange, symbol, timeframe, start_date=start_date, end_date=end_date)

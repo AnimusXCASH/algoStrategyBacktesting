@@ -1,0 +1,23 @@
+
+# if __name__ == "__main__":
+#     import datetime
+#     import time
+
+#     BYBIT_API_KEY = "Rl2tS7S8sIN39gmPiu"
+#     BYBIT_API_SECRET = "vlXJ8CZwpLfO5XlbdS3zUaRSI44EidvIOgpn"
+#     TESTNET = False  # True means your API keys were generated on testnet.bybit.com
+
+#     now = datetime.datetime.now(datetime.timezone.utc)
+#     print(f"current time {now}")
+#     today = now.date()
+
+#     wrapper = BybitWrapper(
+#         api_key=BYBIT_API_KEY,
+#         api_secret=BYBIT_API_SECRET,
+#         testnet=TESTNET,
+#     )
+
+#     wrapper.symbol_setter(symbol="BTCUSDT")
+
+#     klines = wrapper.get_kline_data()
+#     print(klines)

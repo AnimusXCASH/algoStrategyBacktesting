@@ -5,8 +5,15 @@ from utils.dataManipulation import fetch_and_prepare_data
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from utils.pybitWrapper import BybitWrapper
 
 pd.set_option("display.max_rows", None)
+
+bybit = BybitWrapper(
+    api_key='U8hcLgIPr17KbdQosv',
+    api_secret='5eNCrgZSsnBcSEoJ0aUtrNSUsYesSYyxctRr'
+)
+
 
 
 ###############################################################################
@@ -152,22 +159,9 @@ def run_strategy(df, length=20, upper=1.5, lower=-1.5):
 
 
 if __name__ == "__main__":
-    exchange = ccxt.bybit(
-        {
-            "options": {"defaultType": "future", "defaultSubType": "linear"},
-            "rateLimit": 1200,
-            "enableRateLimit": True,
-        }
-    )
+    bybit.symbol_setter(symbol="ETHUSDT")
 
-    symbol = "ETH/USDT"
-    timeframe = "1m"
-    start_date = "2025-02-13T00:00:00Z"
-    end_date = None
-
-    df = fetch_and_prepare_data(
-        exchange, symbol, timeframe, start_date=start_date, end_date=end_date
-    )
+    df = bybit.get_kline_data()
 
     # # df.sort_values("Date", inplace=True)
     # df.set_index("Date", inplace=True)

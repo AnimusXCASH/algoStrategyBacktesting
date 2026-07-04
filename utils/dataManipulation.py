@@ -32,11 +32,11 @@ def fetch_and_prepare_data(exchange, symbol, timeframe, start_date=None, end_dat
         pbar.close()
         ohlcv_data = data  
 
-    keys = ['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']
+    keys = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
     ohlcv_dicts = [dict(zip(keys, item)) for item in ohlcv_data]
     df = pd.DataFrame(ohlcv_dicts)
-    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-    df.set_index('timestamp', inplace=True)
+    df['Date'] = pd.to_datetime(df['Date'], unit='ms')
+    df.set_index('Date', inplace=True)
     first_candle_date = df.index.min()
     last_candle_date = df.index.max()
     print(f'Backtest data: {exchange}-{symbol}-{timeframe}: {first_candle_date} - {last_candle_date}')
